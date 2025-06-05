@@ -1,0 +1,13 @@
+[project]
+name = "deteksi-katarak-menggunakan-pemrosesan-gambar"
+version = "0.1.0"
+description = "deteksi katarak menggunakan pemrosesan gambar di python"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "imutils>=0.5.4",
+    "matplotlib>=3.10.3",
+    "numpy>=2.2.6",
+    "opencv-python>=4.11.0.86",
+    "pillow>=11.2.1",
+]
