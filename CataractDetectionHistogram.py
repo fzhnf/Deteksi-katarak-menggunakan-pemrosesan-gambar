@@ -5,7 +5,13 @@ import cv2
 from cv2.typing import MatLike
 from matplotlib import pyplot as plt
 
-import utils
+from utils import (
+    clear_ui_elements,
+    create_error_label,
+    load_image,
+    resize_image,
+    select_image_file,
+)
 
 
 @final
@@ -48,24 +54,24 @@ class SimpleCataractDetector:
         Menghapus semua hasil dari analisis sebelumnya dari UI.
         """
         # Use the utility function to clear UI elements
-        utils.clear_ui_elements(self.result_labels)
+        clear_ui_elements(self.result_labels)
 
     def select_image(self):
         """
         Membuka dialog untuk memilih file gambar, kemudian memproses
         dan menampilkan hasilnya.
         """
-        path = utils.select_image_file()
+        path = select_image_file()
 
         if not path:
             return
 
         try:
             self.clear_previous_results()
-            img = utils.load_image(path)  # Use utility function to load image
+            img = load_image(path)  # Use utility function to load image
 
             # Ubah ukuran gambar untuk konsistensi
-            img = utils.resize_image(img, width=500)  # Use utility resize function
+            img = resize_image(img, width=500)  # Use utility resize function
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
@@ -83,7 +89,7 @@ class SimpleCataractDetector:
 
         except Exception as e:
             # Use utility function to create error label
-            utils.create_error_label(self.root, str(e), self.result_labels)
+            create_error_label(self.root, str(e), self.result_labels)
 
     def diagnose_cataract(self, mean_val: float) -> tuple[str, str]:
         """
@@ -180,7 +186,7 @@ class SimpleCataractDetector:
 
         except Exception as e:
             # Use utility function for error label
-            utils.create_error_label(
+            create_error_label(
                 self.root, f"Gagal menampilkan histogram: {str(e)}", self.result_labels
             )
 

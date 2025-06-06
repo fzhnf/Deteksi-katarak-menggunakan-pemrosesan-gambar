@@ -6,7 +6,13 @@ import numpy as np
 from cv2.typing import MatLike
 from PIL import Image, ImageTk
 
-import utils
+from utils import (
+    clear_ui_elements,
+    create_error_label,
+    load_image,
+    resize_image,
+    select_image_file,
+)
 
 
 @final
@@ -45,7 +51,7 @@ class CataractDetector:
         """
         Menghapus semua hasil dan gambar dari analisis sebelumnya dari UI.
         """
-        utils.clear_ui_elements(self.result_elements)
+        clear_ui_elements(self.result_elements)
         self.image_references.clear()
 
     def select_image(self):
@@ -53,16 +59,16 @@ class CataractDetector:
         Membuka dialog untuk memilih file gambar, kemudian memproses
         dan menampilkan hasilnya.
         """
-        path = utils.select_image_file()
+        path = select_image_file()
         if not path:
             return
 
         try:
             self.clear_previous_results()
-            img = utils.load_image(path)
+            img = load_image(path)
 
             # Ubah ukuran gambar untuk konsistensi
-            img = utils.resize_image(img, width=500)
+            img = resize_image(img, width=500)
 
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -159,7 +165,7 @@ class CataractDetector:
             )
 
         except Exception as e:
-            utils.create_error_label(self.root, str(e), self.result_elements)
+            create_error_label(self.root, str(e), self.result_elements)
 
     def display_results(
         self, pupil_area: float, cat_area: float, cataract_percentage: float
