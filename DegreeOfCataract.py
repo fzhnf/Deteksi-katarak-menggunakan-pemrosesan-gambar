@@ -1,11 +1,12 @@
-import tkinter.filedialog
-from tkinter import Button, Frame, Label, Tk
+from tkinter import Button, Frame, Label, Tk, Widget
 from typing import cast, final
 
 import cv2
 import numpy as np
 from cv2.typing import MatLike
 from PIL import Image, ImageTk
+
+import utils
 
 
 @final
@@ -24,7 +25,7 @@ class CataractDetector:
         self.root = Tk()
         self.root.title("Sistem Deteksi Katarak")
         self.image_references: list[ImageTk.PhotoImage] = []
-        self.result_labels: list[Label | Frame] = []
+        self.result_elements: list[Widget] = []
         self.setup_ui()
 
     def setup_ui(self):
@@ -38,14 +39,13 @@ class CataractDetector:
             font=("Arial", 12),
         )
         btn.pack(side="bottom", fill="both", expand=True, padx=10, pady=10)
+        self.result_elements.append(btn)
 
     def clear_previous_results(self):
         """
         Menghapus semua hasil dan gambar dari analisis sebelumnya dari UI.
         """
-        for label in self.result_labels:
-            label.destroy()
-        self.result_labels.clear()
+        utils.clear_ui_elements(self.result_elements)
         self.image_references.clear()
 
     def select_image(self):
@@ -53,28 +53,16 @@ class CataractDetector:
         Membuka dialog untuk memilih file gambar, kemudian memproses
         dan menampilkan hasilnya.
         """
-        path = tkinter.filedialog.askopenfilename(
-            title="Pilih Gambar Mata",
-            filetypes=[("File Gambar", "*.jpg *.jpeg *.png *.bmp *.tiff")],
-        )
-
+        path = utils.select_image_file()
         if not path:
             return
 
         try:
             self.clear_previous_results()
-            img = cv2.imread(path)
-
-            # Periksa apakah gambar berhasil dibaca atau tidak
-            if img.size == 0:
-                raise ValueError("Gagal membaca file gambar")
+            img = utils.load_image(path)
 
             # Ubah ukuran gambar untuk konsistensi
-            height = cast(int, img.shape[0])
-            width = cast(int, img.shape[1])
-            new_width = 500
-            new_height = int((new_width / width) * height)
-            img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+            img = utils.resize_image(img, width=500)
 
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -171,12 +159,7 @@ class CataractDetector:
             )
 
         except Exception as e:
-            # Tampilkan pesan error di UI jika terjadi masalah
-            error_label = Label(
-                self.root, text=f"Error: {str(e)}", fg="red", font=("Arial", 10)
-            )
-            error_label.pack()
-            self.result_labels.append(error_label)
+            utils.create_error_label(self.root, str(e), self.result_elements)
 
     def display_results(
         self, pupil_area: float, cat_area: float, cataract_percentage: float
@@ -191,6 +174,7 @@ class CataractDetector:
         """
         results_frame = Frame(self.root)
         results_frame.pack(pady=10)
+        self.result_elements.append(results_frame)
 
         pupil_label = Label(
             results_frame,
@@ -198,7 +182,7 @@ class CataractDetector:
             font=("Arial", 10, "bold"),
         )
         pupil_label.pack()
-        self.result_labels.append(pupil_label)
+        self.result_elements.append(pupil_label)
 
         cat_label = Label(
             results_frame,
@@ -206,7 +190,7 @@ class CataractDetector:
             font=("Arial", 10, "bold"),
         )
         cat_label.pack()
-        self.result_labels.append(cat_label)
+        self.result_elements.append(cat_label)
 
         # Tentukan warna teks berdasarkan tingkat keparahan katarak
         color = (
@@ -223,8 +207,7 @@ class CataractDetector:
             fg=color,
         )
         percentage_label.pack()
-        self.result_labels.append(percentage_label)
-        self.result_labels.append(results_frame)
+        self.result_elements.append(percentage_label)
 
     def display_images(
         self,
@@ -277,7 +260,7 @@ class CataractDetector:
         # Buat frame untuk menampilkan gambar-gambar proses
         images_frame = Frame(self.root)
         images_frame.pack(pady=10)
-        self.result_labels.append(images_frame)
+        self.result_elements.append(images_frame)
 
         labels = [
             "Asli",
@@ -292,15 +275,15 @@ class CataractDetector:
         for tk_image, label_text in zip(resized_images, labels):
             panel_frame = Frame(images_frame)
             panel_frame.pack(side="left", padx=5, pady=5)
+            self.result_elements.append(panel_frame)
 
             panel = Label(panel_frame, image=tk_image)
             panel.pack()
+            self.result_elements.append(panel)
 
             text_label = Label(panel_frame, text=label_text, font=("Arial", 8))
             text_label.pack()
-
-            # Tambahkan widget ke daftar untuk pembersihan nanti
-            self.result_labels.extend([panel_frame, panel, text_label])
+            self.result_elements.append(text_label)
 
     def run(self):
         """

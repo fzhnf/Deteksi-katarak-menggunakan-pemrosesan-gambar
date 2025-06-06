@@ -1,10 +1,11 @@
-import tkinter.filedialog
-from tkinter import Button, Frame, Label, Tk
-from typing import cast, final
+from tkinter import Button, Frame, Label, Tk, Widget
+from typing import final
 
 import cv2
 from cv2.typing import MatLike
 from matplotlib import pyplot as plt
+
+import utils
 
 
 @final
@@ -23,7 +24,7 @@ class SimpleCataractDetector:
         self.root = Tk()
         self.root.title("Sistem Deteksi Katarak Sederhana")
         self.root.geometry("300x150")
-        self.result_labels: list[Label | Frame] = []
+        self.result_labels: list[Widget] = []
         self.setup_ui()
 
     def setup_ui(self):
@@ -46,80 +47,29 @@ class SimpleCataractDetector:
         """
         Menghapus semua hasil dari analisis sebelumnya dari UI.
         """
-        for label in self.result_labels:
-            label.destroy()
-        self.result_labels.clear()
-
-    def manual_resize(
-        self,
-        image: MatLike,
-        width: int | None = None,
-        height: int | None = None,
-        inter: int = cv2.INTER_AREA,
-    ) -> MatLike:
-        """
-        Mengubah ukuran gambar secara manual dengan mempertahankan aspect ratio.
-        Mengganti fungsi imutils.resize().
-
-        Args:
-            image: Gambar input yang akan diubah ukurannya.
-            width: Lebar target (opsional).
-            height: Tinggi target (opsional).
-            inter: Metode interpolasi untuk resize.
-
-        Returns:
-            Gambar yang telah diubah ukurannya.
-        """
-        h = cast(int, image.shape[0])
-        w = cast(int, image.shape[1])
-
-        # Tangani kasus resize
-        match (width, height):
-            case (None, None):
-                # Tidak ada dimensi yang diberikan, return gambar asli
-                return image
-            case (None, new_height):
-                # Hitung berdasarkan tinggi
-                r = new_height / float(h)
-                dim = (int(w * r), new_height)
-            case (new_width, None):
-                # Hitung berdasarkan lebar
-                r = new_width / float(w)
-                dim = (new_width, int(h * r))
-            case (new_width, new_height):
-                # Kedua lebar dan tinggi diberikan
-                dim = (new_width, new_height)
-
-        # Ubah ukuran gambar
-        return cv2.resize(image, dim, interpolation=inter)
+        # Use the utility function to clear UI elements
+        utils.clear_ui_elements(self.result_labels)
 
     def select_image(self):
         """
         Membuka dialog untuk memilih file gambar, kemudian memproses
         dan menampilkan hasilnya.
         """
-        path = tkinter.filedialog.askopenfilename(
-            title="Pilih Gambar Mata",
-            filetypes=[("File Gambar", "*.jpg *.jpeg *.png *.bmp *.tiff")],
-        )
+        path = utils.select_image_file()
 
         if not path:
             return
 
         try:
             self.clear_previous_results()
-            img = cv2.imread(path)
-
-            # Periksa apakah gambar berhasil dibaca atau tidak
-            if img.size == 0:
-                raise ValueError("Gagal membaca file gambar")
+            img = utils.load_image(path)  # Use utility function to load image
 
             # Ubah ukuran gambar untuk konsistensi
-            img = self.manual_resize(img, width=500)
+            img = utils.resize_image(img, width=500)  # Use utility resize function
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
-            # Hitung mean dan standard deviation dengan proper typing
+            # Hitung mean dan standard deviation
             mean_arr = cv2.meanStdDev(gray)[0]
             std_arr = cv2.meanStdDev(gray)[1]
             mean_val = float(mean_arr[0, 0])  # pyright: ignore[reportAny]
@@ -132,12 +82,8 @@ class SimpleCataractDetector:
             self.show_histogram(gray, mean_val)
 
         except Exception as e:
-            # Tampilkan pesan error di UI jika terjadi masalah
-            error_label = Label(
-                self.root, text=f"Error: {str(e)}", fg="red", font=("Arial", 10)
-            )
-            error_label.pack()
-            self.result_labels.append(error_label)
+            # Use utility function to create error label
+            utils.create_error_label(self.root, str(e), self.result_labels)
 
     def diagnose_cataract(self, mean_val: float) -> tuple[str, str]:
         """
@@ -233,15 +179,10 @@ class SimpleCataractDetector:
             plt.show()  # pyright: ignore[reportUnknownMemberType]
 
         except Exception as e:
-            # Jika gagal menampilkan histogram, tampilkan error di UI
-            error_label = Label(
-                self.root,
-                text=f"Gagal menampilkan histogram: {str(e)}",
-                fg="orange",
-                font=("Arial", 8),
+            # Use utility function for error label
+            utils.create_error_label(
+                self.root, f"Gagal menampilkan histogram: {str(e)}", self.result_labels
             )
-            error_label.pack()
-            self.result_labels.append(error_label)
 
     def run(self):
         """
